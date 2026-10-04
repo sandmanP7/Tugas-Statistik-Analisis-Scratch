@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Statistik kepuasan UI Dompetku</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F4F5FA; --surface:#FFFFFF; --ink:#1A2040; --muted:#5A6283; --line:#DADEEE;
+  --s1:#C8453B; --s2:#E98B5E; --s3:#D6D9E6; --s4:#7C9CE8; --s5:#2B4BD6;
+  --t1:#FFFFFF; --t2:#1A2040; --t3:#1A2040; --t4:#0F1636; --t5:#FFFFFF;
+  --accent:#2B4BD6; --warn:#C8453B; --mark:#E9A91C;
+  --p1:#2B4BD6; --p2:#7C9CE8; --p3:#B5C6F2; --p4:#C8453B; --p5:#E98B5E; --p6:#F2C0A5;
+  --font-display:"Bricolage Grotesque","Segoe UI",system-ui,-apple-system,sans-serif;
+  --font-body:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0E1124; --surface:#171B36; --ink:#E9ECFA; --muted:#A0A7CC; --line:#2A3058;
+    --s1:#C9372C; --s2:#E3875B; --s3:#4A5078; --s4:#8CA8F2; --s5:#4B66E8;
+    --t1:#FFFFFF; --t2:#1A1030; --t3:#FFFFFF; --t4:#0F1636; --t5:#FFFFFF;
+    --accent:#8CA3FF; --warn:#E3735E; --mark:#F0B53A;
+    --p1:#4B66E8; --p2:#8CA8F2; --p3:#B9C8F7; --p4:#C9372C; --p5:#E3875B; --p6:#F0B79A;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0E1124; --surface:#171B36; --ink:#E9ECFA; --muted:#A0A7CC; --line:#2A3058;
+  --s1:#C9372C; --s2:#E3875B; --s3:#4A5078; --s4:#8CA8F2; --s5:#4B66E8;
+  --t1:#FFFFFF; --t2:#1A1030; --t3:#FFFFFF; --t4:#0F1636; --t5:#FFFFFF;
+  --accent:#8CA3FF; --warn:#E3735E; --mark:#F0B53A;
+  --p1:#4B66E8; --p2:#8CA8F2; --p3:#B9C8F7; --p4:#C9372C; --p5:#E3875B; --p6:#F0B79A;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:1rem;line-height:1.55;overflow:hidden}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{width:100%;max-width:1080px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+
+/* Tumpukan layar: satu tampil per waktu */
+.deck{position:fixed;inset:0;overflow:hidden}
+.layer{--layer-bg:var(--bg);background:var(--layer-bg);position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;display:flex;
+  padding:calc(40px + env(safe-area-inset-top,0px)) 0 120px;
+  opacity:0;visibility:hidden;transform:translateX(5%);
+  transition:opacity .45s ease,transform .5s cubic-bezier(.2,.7,.2,1),visibility 0s linear .5s}
+.layer.alt{--layer-bg:var(--surface)}
+.layer>.wrap{margin:auto}
+.layer[data-pos="before"]{transform:translateX(-5%)}
+.layer[data-pos="after"]{transform:translateX(5%)}
+.layer[data-pos="active"]{opacity:1;visibility:visible;transform:none;transition:opacity .45s ease,transform .5s cubic-bezier(.2,.7,.2,1),visibility 0s}
+
+/* Tombol Sebelumnya dan Berikutnya */
+.controls{position:fixed;z-index:20;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+  width:min(580px,calc(100% - 24px));display:flex;align-items:center;gap:12px;padding:8px;
+  background:var(--ink);color:var(--bg);border-radius:999px;box-shadow:0 12px 32px rgba(10,14,40,.28)}
+.controls :focus-visible{outline-color:var(--mark)}
+.nbtn{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:10px;min-width:48px;min-height:48px;padding:0 20px;border:0;border-radius:999px;font:600 .95rem var(--font-body);cursor:pointer;color:inherit;background:rgba(127,127,127,.28);transition:transform .2s ease,opacity .2s ease}
+.nbtn.next{background:var(--bg);color:var(--ink)}
+.nbtn:hover:not(:disabled){transform:translateY(-1px)}
+.nbtn:active:not(:disabled){transform:translateY(1px)}
+.nbtn:disabled{opacity:.35;cursor:default}
+.arr{width:9px;height:9px;border-top:2px solid currentColor;border-right:2px solid currentColor;flex:0 0 auto}
+.prev .arr{transform:rotate(-135deg)}
+.next .arr{transform:rotate(45deg)}
+.status{flex:1 1 auto;min-width:0;text-align:center;line-height:1.25}
+.dots{display:flex;justify-content:center;gap:10px;margin-bottom:5px}
+.dots button{position:relative;width:10px;height:10px;padding:0;border:0;border-radius:50%;background:currentColor;opacity:.35;cursor:pointer;transition:opacity .3s ease,transform .3s ease}
+.dots button::after{content:"";position:absolute;inset:-8px}
+.dots button[aria-current="true"]{opacity:1;transform:scale(1.35)}
+.stext{font-size:.8rem;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Animasi masuk */
+.rv,.bw{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s cubic-bezier(.2,.7,.2,1);transition-delay:calc(var(--i,0) * 110ms)}
+.in .rv,.in .bw{opacity:1;transform:none}
+
+/* Hero */
+.hero-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:32px 56px;align-items:center}
+h1{font-family:var(--font-display);font-weight:700;font-size:clamp(2rem,5.6vw,3.6rem);line-height:1.06;letter-spacing:-.022em;margin:0 0 18px;max-width:20ch}
+.lede{font-size:1.15rem;color:var(--ink);max-width:58ch;margin:0 0 10px}
+.meta{font-size:.9rem;color:var(--muted);margin:0;max-width:64ch}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 28px;margin:40px 0 0;padding:0}
+.kpi{border-top:2px solid var(--ink);padding:12px 0 6px}
+.kpi dt{font-size:.9rem;color:var(--muted)}
+.kpi dd{margin:2px 0 0}
+.num{font-family:var(--font-display);font-size:2.6rem;font-weight:700;line-height:1.1;letter-spacing:-.02em}
+.unit{color:var(--muted);font-size:.95rem;margin-left:4px}
+.delta{display:block;font-size:.85rem;color:var(--muted);margin-top:2px}
+.hint{display:flex;align-items:center;gap:10px;margin:28px 0 0;font-size:.88rem;color:var(--muted)}
+.chev{width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);animation:nudge 1.8s ease-in-out infinite}
+@keyframes nudge{0%,100%{transform:translateX(0) rotate(-45deg)}50%{transform:translateX(5px) rotate(-45deg)}}
+
+/* Dua kolom */
+.split{display:grid;grid-template-columns:minmax(0,290px) minmax(0,1fr);gap:28px 48px;align-items:start}
+.copy h2{font-family:var(--font-display);font-weight:650;font-size:1.65rem;line-height:1.15;letter-spacing:-.015em;margin:0 0 12px}
+.copy p{margin:0 0 12px;color:var(--muted);max-width:44ch}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:16px 0 0;padding:0;list-style:none;font-size:.85rem;color:var(--muted)}
+.legend li{display:flex;align-items:center;gap:6px}
+.sw{width:14px;height:14px;border-radius:3px;display:inline-block}
+.sw.o{border-radius:50%;border:2px solid var(--muted);background:var(--layer-bg)}
+.sw.f{border-radius:50%;background:var(--accent)}
+
+/* Gelembung komentar */
+.chat{display:grid;gap:14px;margin-top:26px}
+.hero-grid .chat{margin-top:0}
+.bw{max-width:340px}
+.bw.right{justify-self:end}
+.bubble{position:relative;padding:12px 14px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:16px 16px 16px 4px;box-shadow:0 8px 20px rgba(10,14,40,.10);animation:bob 6s ease-in-out infinite;animation-delay:var(--bd,0s)}
+.layer:not([data-pos="active"]) .bubble{animation-play-state:paused}
+.layer.alt .bubble{background:var(--bg)}
+.bw.right .bubble{border-radius:16px 16px 4px 16px}
+.bhead{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.avatar{flex:0 0 auto;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:700 .85rem var(--font-display);color:#fff}
+.bmeta{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.uname{font-weight:600;font-size:.9rem;overflow-wrap:anywhere}
+.bscore{font-size:.76rem;color:var(--muted)}
+.btext{font-size:.92rem;color:var(--ink)}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.chat.wall{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 24px;margin-top:32px}
+
+/* Diverging bars */
+.row{display:grid;grid-template-columns:150px minmax(0,1fr);grid-template-areas:"l t";align-items:center;gap:12px;padding:7px 0}
+.rlabel{grid-area:l;font-size:.95rem}
+.track{grid-area:t;position:relative;height:28px}
+.track::before{content:"";position:absolute;left:var(--axis);top:-7px;bottom:-7px;width:1px;background:var(--ink);opacity:.5}
+.bar{position:absolute;top:0;height:100%;display:flex;transform:scaleX(0);transform-origin:var(--ox) 50%;transition:transform .85s cubic-bezier(.2,.7,.2,1);transition-delay:var(--d)}
+.go .bar{transform:none}
+.seg{border:0;margin:0;padding:0;min-width:0;height:100%;cursor:pointer;font:600 .75rem var(--font-body);display:flex;align-items:center;justify-content:center;overflow:hidden;-webkit-appearance:none;appearance:none}
+.seg + .seg{box-shadow:inset 1px 0 0 var(--layer-bg)}
+.seg:hover{filter:brightness(1.1)}
+.seg:focus-visible{outline-offset:-3px}
+.s1{background:var(--s1);color:var(--t1)}
+.s2{background:var(--s2);color:var(--t2)}
+.s3{background:var(--s3);color:var(--t3)}
+.s4{background:var(--s4);color:var(--t4)}
+.s5{background:var(--s5);color:var(--t5)}
+.readout{min-height:3em;font-size:.95rem;color:var(--muted);margin:14px 0 0}
+
+/* Trend */
+#trend{width:100%}
+#trend svg{display:block;width:100%;height:auto;overflow:visible}
+.grid{stroke:var(--line);stroke-width:1}
+.tx{fill:var(--muted);font:500 12px var(--font-body)}
+.tv{fill:var(--ink);font:600 13px var(--font-body)}
+.tv.last{font-size:15px}
+.tline{fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:0}
+.tdot{fill:var(--layer-bg);stroke:var(--accent);stroke-width:3}
+.tdot.last{fill:var(--accent)}
+.mark{stroke:var(--mark);stroke-width:2;stroke-dasharray:4 4}
+.marktx{fill:var(--ink);font:600 12px var(--font-body)}
+.pre .tline{stroke-dashoffset:1}
+.pre.play .tline{stroke-dashoffset:0;transition:stroke-dashoffset 1.4s cubic-bezier(.3,.6,.2,1)}
+.pre .tdot,.pre .tv,.pre .mark,.pre .marktx{opacity:0}
+.pre.play .tdot,.pre.play .tv{opacity:1;transition:opacity .4s ease;transition-delay:calc(var(--i) * .22s + .15s)}
+.pre.play .mark,.pre.play .marktx{opacity:1;transition:opacity .5s ease .9s}
+
+/* Dumbbell */
+.arow{display:grid;grid-template-columns:170px minmax(0,1fr) 40px 44px;grid-template-areas:"l t v d";align-items:center;gap:12px;padding:8px 0}
+.alabel{grid-area:l;font-size:.95rem}
+.atrack{grid-area:t;position:relative;height:30px;background:
+  linear-gradient(var(--line),var(--line)) 0 0/1px 100% no-repeat,
+  linear-gradient(var(--line),var(--line)) 25% 0/1px 100% no-repeat,
+  linear-gradient(var(--line),var(--line)) 50% 0/1px 100% no-repeat,
+  linear-gradient(var(--line),var(--line)) 75% 0/1px 100% no-repeat,
+  linear-gradient(var(--line),var(--line)) 100% 0/1px 100% no-repeat}
+.aline{position:absolute;top:50%;height:4px;transform:translateY(-50%);background:var(--accent);opacity:.4;border-radius:2px;transition:left .9s cubic-bezier(.2,.7,.2,1) var(--d,0ms),width .9s cubic-bezier(.2,.7,.2,1) var(--d,0ms)}
+.aline.low{background:var(--s2);opacity:.6}
+.adot{position:absolute;top:50%;width:15px;height:15px;border-radius:50%;transform:translate(-50%,-50%)}
+.adot.before{border:2px solid var(--muted);background:var(--layer-bg)}
+.adot.after{background:var(--accent);transition:left .9s cubic-bezier(.2,.7,.2,1) var(--d,0ms)}
+.adot.low{background:var(--s2)}
+.aval{grid-area:v;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.adelta{grid-area:d;text-align:right;font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.adelta.neg{color:var(--warn);font-weight:600}
+.arow.axis{padding:0}
+.arow.axis .atrack{height:18px;background:none}
+.atrack.ticks span{position:absolute;top:0;transform:translateX(-50%);font-size:.78rem;color:var(--muted)}
+
+/* Kelompok pengguna */
+.tabs{display:flex;gap:4px;padding:4px;background:var(--line);border-radius:999px;width:100%;max-width:420px;margin:0 0 18px}
+.tab{flex:1 1 auto;border:0;background:transparent;color:var(--muted);font:600 .88rem var(--font-body);padding:7px 10px;border-radius:999px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.14)}
+.srow{display:grid;grid-template-columns:200px minmax(0,1fr) 40px;grid-template-areas:"l t v";align-items:center;gap:12px;padding:6px 0}
+.slabel{grid-area:l;font-size:.95rem;line-height:1.3}
+.slabel small{display:block;color:var(--muted);font-size:.8rem}
+.strack{grid-area:t;position:relative;height:22px;background:var(--line);border-radius:4px}
+.strack::before{content:"";position:absolute;left:80%;top:-6px;bottom:-6px;border-left:1px dashed var(--muted);z-index:1}
+.sbar{height:100%;width:0;background:var(--accent);border-radius:4px;transition:width .55s cubic-bezier(.2,.7,.2,1)}
+.sbar.low{background:var(--s2)}
+.sval{grid-area:v;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.shead{padding:0 0 4px}
+.shead .strack{height:18px;background:none}
+.shead .strack::before{display:none}
+.refcap{position:absolute;left:80%;top:0;transform:translateX(-50%);font-size:.8rem;color:var(--muted);white-space:nowrap}
+.snote{min-height:3em;margin:14px 0 0;color:var(--muted);font-size:.95rem}
+
+/* Tema komentar */
+.themes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 36px}
+.themes h3{font-family:var(--font-display);font-size:1.1rem;font-weight:650;margin:0 0 12px}
+.themes ul{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.thead{display:flex;justify-content:space-between;gap:12px;font-size:.95rem}
+.tn{color:var(--muted);font-variant-numeric:tabular-nums}
+.tbar{height:8px;background:var(--line);border-radius:4px;margin-top:6px;overflow:hidden}
+.tbar i{display:block;height:100%;width:0;background:var(--accent);border-radius:4px;transition:width .9s cubic-bezier(.2,.7,.2,1) var(--d,0ms)}
+.themes .neg .tbar i{background:var(--s2)}
+
+/* Diagram lingkaran */
+.pie-block{margin-top:32px;padding-top:24px;border-top:1px solid var(--line)}
+.pie-block h3{font-family:var(--font-display);font-size:1.1rem;font-weight:650;margin:0 0 14px}
+.pie-wrap{display:flex;align-items:center;flex-wrap:wrap;gap:20px 36px}
+.pie{width:200px;height:200px;flex:0 0 auto;display:block}
+.pslice{stroke:var(--layer-bg);stroke-width:2;stroke-linejoin:round;opacity:0;transition:opacity .6s ease;transition-delay:calc(var(--i) * 110ms + 200ms)}
+.in .pslice{opacity:1}
+.pslice:hover{filter:brightness(1.08)}
+.plegend{list-style:none;margin:0;padding:0;display:grid;gap:9px;flex:1 1 240px;min-width:0;font-size:.92rem}
+.plegend li{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:10px;align-items:center}
+.plegend .pct{font-variant-numeric:tabular-nums;color:var(--muted)}
+
+.note{border-top:1px solid var(--line);margin-top:32px;padding-top:16px;color:var(--muted);font-size:.85rem}
+.note p{margin:0 0 6px;max-width:80ch}
+noscript p{position:fixed;z-index:30;left:0;right:0;top:0;margin:0;padding:16px 20px;background:var(--surface);color:var(--warn)}
+
+@media (min-width:861px){
+  .wrap{padding-left:max(44px,env(safe-area-inset-left,0px));padding-right:max(44px,env(safe-area-inset-right,0px))}
+}
+@media (max-width:900px){
+  .hero-grid{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:860px){
+  .split{grid-template-columns:minmax(0,1fr)}
+  .copy p{max-width:60ch}
+  .layer{padding:calc(28px + env(safe-area-inset-top,0px)) 0 112px}
+}
+@media (max-width:640px){
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 20px}
+  .num{font-size:2.2rem}
+  .row{grid-template-columns:minmax(0,1fr);grid-template-areas:"l" "t";gap:6px 12px}
+  .arow{grid-template-columns:minmax(0,1fr) 40px 44px;grid-template-areas:"l v d" "t t t";gap:6px 12px}
+  .arow.axis{grid-template-areas:"t t t"}
+  .arow.axis > :not(.atrack){display:none}
+  .srow{grid-template-columns:minmax(0,1fr) 40px;grid-template-areas:"l v" "t t";gap:6px 12px;padding:8px 0}
+  .srow.shead{grid-template-areas:"t t"}
+  .srow.shead > :not(.strack){display:none}
+  .themes{grid-template-columns:minmax(0,1fr)}
+  .chat.wall{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:520px){
+  .nbtn{padding:0;width:48px}
+  .nbtn .lbl{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .layer,.layer[data-pos="active"]{transition:none}
+  .rv,.bw{opacity:1;transform:none;transition:none}
+  .bubble,.chev{animation:none}
+  .bar,.sbar,.aline,.adot.after,.tbar i,.nbtn,.dots button,.pslice{transition:none}
+  .bar{transform:none}
+  .pre .tline{stroke-dashoffset:0}
+  .pre .tdot,.pre .tv,.pre .mark,.pre .marktx{opacity:1}
+}
+</style>
+</head>
+<body>
+
+<noscript><p>Halaman ini membutuhkan JavaScript. Aktifkan JavaScript untuk melihat data.</p></noscript>
+
+<main class="deck" id="deck">
+
+  <!-- Layar 1: ringkasan -->
+  <section class="layer" id="l1" data-name="Ringkasan" aria-labelledby="h-main">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div>
+          <h1 id="h-main" class="rv" style="--i:0">Analisis Kepuasan Pengguna tentang UI dan UX Scratch Berdasarkan Perubahan Versi dan Penambahan Fitur</h1>
+          <p class="lede rv" style="--i:1">Skor kepuasan pengguna turun dari 4,5 ke 3,9 sejak Versi 3.0 rilis. Extensions Library, Tata Letak (UI/UX) dan Blok Baru yang Lebih Intuitif paling disukai, sedangkan Logika dan Performa Pemrograman masih kurang memuaskan.</p>
+          <p class="meta rv" style="--i:2">Survei dalam aplikasi, 33.394 respons, Agustus sampai Oktober 2026.</p>
+        </div>
+        <div class="chat" data-set="hero"></div>
+      </div>
+      <dl class="kpis">
+        <div class="kpi rv" style="--i:3"><dt>Kepuasan keseluruhan</dt><dd><span class="num">4,3</span><span class="unit">dari 5</span><span class="delta">naik 0,4 sejak Dirilisnya 3.32.1</span></dd></div>
+        <div class="kpi rv" style="--i:4"><dt>Skor SUS</dt><dd><span class="num">75,17</span><span class="unit">dari 100</span><span class="delta">di atas rata-rata industri (68)</span></dd></div>
+        <div class="kpi rv" style="--i:5"><dt>Customer Effort Service</dt><dd><span class="num">5,2</span><span class="unit">dari 7</span><span class="delta">naik dari 5,0 di versi 3.32.1</span></dd></div>
+        <div class="kpi rv" style="--i:6"><dt>Tingkat Kompatibilitas Hardware</dt><dd><span class="num">90%</span><span class="delta">naik dari 80% di Agustus</span></dd></div>
+      </dl>
+      <p class="hint rv" style="--i:7"><span class="chev" aria-hidden="true"></span>Tekan Berikutnya untuk melihat tiap layar</p>
+    </div>
+  </section>
+
+  <!-- Layar 2: per layar aplikasi -->
+  <section class="layer alt" id="l2" data-name="Kepuasan per layar" aria-labelledby="h-screens">
+    <div class="wrap">
+      <div class="split">
+        <div class="copy">
+          <h2 id="h-screens" class="rv" style="--i:0">Respon Pengguna terhadap UI & UX Scratch</h2>
+          <p class="rv" style="--i:1">Setiap bar menunjukkan sebaran jawaban pengguna per layar. Sisi biru berarti puas, sisi merah berarti tidak puas.</p>
+          <ul class="legend rv" style="--i:2" aria-label="Keterangan warna">
+            <li><span class="sw s1"></span>1 sangat tidak puas</li>
+            <li><span class="sw s2"></span>2 tidak puas</li>
+            <li><span class="sw s3"></span>3 netral</li>
+            <li><span class="sw s4"></span>4 puas</li>
+            <li><span class="sw s5"></span>5 sangat puas</li>
+          </ul>
+          <div class="chat" data-set="screens"></div>
+        </div>
+        <div class="viz rv" style="--i:2">
+          <div id="screens" role="group" aria-label="Sebaran kepuasan per layar"></div>
+          <p class="readout" id="readout" aria-live="polite">Ketuk atau arahkan kursor ke bagian bar untuk melihat persentasenya.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Layar 3: tren -->
+  <section class="layer" id="l3" data-name="Tren bulanan" aria-labelledby="h-trend">
+    <div class="wrap">
+      <div class="split">
+        <div class="copy">
+          <h2 id="h-trend" class="rv" style="--i:0">Kepuasan naik sejak versi 2.0 dan mengalami penurunan saat versi 3.0 dirilis</h2>
+          <p class="rv" style="--i:1">Rata-rata skor kepuasan. Selama versi awal 1.0 sampai 2.0 mengalami kenaikan rating dan stabil, lalu mengalami penurunan setelah versi 3.0 rilis dengan anggapan desain UI yang aneh.</p>
+          <div class="chat" data-set="trend"></div>
+        </div>
+        <div class="viz rv" style="--i:2"><div id="trend"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Layar 4: aspek -->
+  <section class="layer alt" id="l4" data-name="Aspek tampilan" aria-labelledby="h-aspects">
+    <div class="wrap">
+      <div class="split">
+        <div class="copy">
+          <h2 id="h-aspects" class="rv" style="--i:0"> Kompatibilitas Hardware berkembang paling jauh, Efek Grafis dan Ruang Kerja mengalami penurunan yang cukup besar</h2>
+          <p class="rv" style="--i:1">Skor aspek tampilan pada 2.0 dibandingkan 3.0.</p>
+          <ul class="legend rv" style="--i:2" aria-label="Keterangan titik">
+            <li><span class="sw o"></span>2.0</li>
+            <li><span class="sw f"></span>3.0</li>
+          </ul>
+          <div class="chat" data-set="aspects"></div>
+        </div>
+        <div class="viz rv" style="--i:2"><div id="aspects"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Layar 5: kelompok pengguna -->
+  <section class="layer" id="l5" data-name="Kelompok pengguna" aria-labelledby="h-seg">
+    <div class="wrap">
+      <div class="split">
+        <div class="copy">
+          <h2 id="h-seg" class="rv" style="--i:0">Kepuasan berbeda menurut siapa yang memakai</h2>
+          <p class="rv" style="--i:1">Pilih kelompok untuk melihat rata-rata skornya. Garis putus-putus menandai rata-rata keseluruhan, dan kelompok terendah diberi warna oranye.</p>
+          <div class="chat" data-set="seg"></div>
+        </div>
+        <div class="viz rv" style="--i:2">
+          <div class="tabs" role="tablist" id="tabs" aria-label="Kelompok pengguna">
+            <button class="tab" role="tab" data-k="usia">Usia</button>
+            <button class="tab" role="tab" data-k="perangkat">Perangkat</button>
+            <button class="tab" role="tab" data-k="lama">Lama memakai</button>
+          </div>
+          <div id="segbody" role="tabpanel"></div>
+          <p class="snote" id="snote" aria-live="polite"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Layar 6: komentar -->
+  <section class="layer alt" id="l6" data-name="Komentar pengguna" aria-labelledby="h-themes">
+    <div class="wrap">
+      <div class="split">
+        <div class="copy">
+          <h2 id="h-themes" class="rv" style="--i:0">Yang paling sering dibicarakan pengguna</h2>
+          <p class="rv" style="--i:1">Tema dari 1.036 komentar terbuka. Satu komentar bisa memuat lebih dari satu tema.</p>
+        </div>
+        <div class="viz rv" style="--i:2">
+          <div class="themes">
+            <div><h3>Yang disukai</h3><ul id="like"></ul></div>
+            <div class="neg"><h3>Yang dikeluhkan</h3><ul id="dislike"></ul></div>
+          </div>
+          <div class="pie-block">
+            <h3>Porsi tiap tema dari seluruh sebutan</h3>
+            <div class="pie-wrap">
+              <svg class="pie" id="pie" viewBox="0 0 200 200" role="img" aria-label=""></svg>
+              <ul class="plegend" id="plegend"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="chat wall" data-set="wall"></div>
+      <div class="note rv" style="--i:8">
+        <p>Metode: survei singkat dalam aplikasi setelah pengguna menyelesaikan tugas, skala 1 (sangat tidak puas) sampai 5 (sangat puas). SUS dihitung dari kuesioner 10 butir pada 312 responden uji kegunaan. NPS memakai skala 0 sampai 10.</p>
+        <p>Data dan komentar di halaman ini adalah contoh untuk aplikasi fiktif Dompetku. Ganti dengan data survei Anda sendiri.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<nav class="controls" aria-label="Navigasi layar">
+  <button type="button" class="nbtn prev" id="prev" aria-label="Layar sebelumnya"><span class="arr" aria-hidden="true"></span><span class="lbl">Sebelumnya</span></button>
+  <div class="status">
+    <div class="dots" id="dots"></div>
+    <div class="stext" id="stext" aria-live="polite"></div>
+  </div>
+  <button type="button" class="nbtn next" id="next" aria-label="Layar berikutnya"><span class="lbl">Berikutnya</span><span class="arr" aria-hidden="true"></span></button>
+</nav>
+
+<script>
+(function(){
+  var fmt=function(n,d){return n.toFixed(d).replace('.',',')};
+  var num=function(n){return n.toLocaleString('id-ID')};
+  var NAMES=["Sangat tidak puas","Tidak puas","Netral","Puas","Sangat puas"];
+  var pos=function(v){return (v-2.5)/2*100};
+
+  /* ---------- Gelembung komentar ---------- */
+  var AV=["#2B4BD6","#B2432F","#1B7F6B","#7A45C7","#A15F00","#0E7490"];
+  var LOREM=[
+    "Yes, it’s a good way to learn the concepts and structures of programing.It’s an environment with “a low threshold and a high celling”, meaning it’s easy to enter the room, but once you are in there is lots of room to grow.",
+    "The thing is, a lot of people have an interest in programming, but they just don’t do it because they see things being exaggerated in the media and they get a misconceived notion about the difficulty of programming. So they never even start!.",
+    "Scratch is a great way to build a basic video game. But don’t be fooled by its simple design and cartoonish characters—to make a great game on Scratch takes many, many hours.",
+    "i find it very effective from beginner to medium level. It’s fun, there’s a lot of tutorials et and you can see what you’re doing along the way.",
+    "Really good but the UI is really small atleast for me and I can see it very well.",
+    "Let’s reverse into “Scratch 2.0.” When I found Scratch, I randomly typed “Scratch.com” Boom! The Unpopular Coding Website, Soon to be a birthplace of many Great Coders. Sure its pretty simple to code. But it feels Great and Free to Code! You can make Art, Audio, Code, Etc.",
+    "Sejujurnya Scratch 3.0 keluar rasanya game changer tapi buat pengguna lama kayak pake aplikasi baru.",
+    "No of course it is not, if it has not changed since I looked at it a few years ago. Scratch is a very simple introduction to something very difficult. The tutorials I have seen are very simplistic and lacking in abstraction.",
+    "I think to get to serious programming you have to break away from the mouse and start using the keyboard, although I’ve seen some impressive things done with Scratch. Overall I would say its great for its intended use.",
+    "as a former scratch coder, I wanted to try the mobile version just to see how it would work, and I loved it very dearly, but the newer interface sizing is extremely jacked up as a person on a tablet, I would love if you changed it or added an option to change the interface :( thanks for reading."
+  ];
+  var COMMENTS={
+    hero:[["Rupert russel","Skor 4"],["Jackson Clark","Skor 4"],["Matthew Highland","Skor 3"]],
+    screens:[["julian elies","Usability, skor 5"],["Malachi McNally","Interface, skor 2"]],
+    trend:[["Dingy","2.0, skor 4"],["Mukhlis","3.0, skor 4"]],
+    aspects:[["Mark roberts","skor 5"],["michael claar"," skor 2"]],
+    seg:[["victor mercado","Laptop, skor 3"]],
+    wall:[]
+  };
+  (function(){
+    var cnt=0;
+    Array.prototype.forEach.call(document.querySelectorAll('.chat'),function(box){
+      var list=COMMENTS[box.dataset.set]||[];
+      box.innerHTML=list.map(function(c,i){
+        var k=cnt++, user=c[0];
+        return '<div class="bw'+(i%2?' right':'')+'" style="--i:'+(i+3)+'"><div class="bubble" style="--bd:'+(-(k*1.3))+'s">'+
+          '<div class="bhead"><span class="avatar" style="background:'+AV[k%AV.length]+'" aria-hidden="true">'+user.charAt(0).toUpperCase()+'</span>'+
+          '<span class="bmeta"><span class="uname">@'+user+'</span><span class="bscore">'+c[1]+'</span></span></div>'+
+          '<div class="btext">'+LOREM[k%LOREM.length]+'</div></div></div>';
+      }).join('');
+    });
+  })();
+
+  /* ---------- 1. Sebaran per layar ---------- */
+  var SCREENS=[
+    {name:"Navigation",p:[7,21,18,22,25]},
+    {name:"Readability",p:[3,11,18,8,13]},
+    {name:"Accesbility",p:[6,10,13,12,11]},
+    {name:"Interface",p:[4,2,11,6,7]},
+    {name:"Usability",p:[2,5,2,17,20]},
+    {name:"Not Specific",p:[0,7,3,7,0]}
+  ];
+  var screensEl=document.getElementById('screens');
+  (function(){
+    var readout=document.getElementById('readout');
+    var rows=SCREENS.map(function(s){
+      var left=s.p[0]+s.p[1]+s.p[2]/2, right=s.p[2]/2+s.p[3]+s.p[4];
+      var mean=s.p.reduce(function(a,v,i){return a+v*(i+1)},0)/100;
+      return {name:s.name,p:s.p,left:left,right:right,mean:mean};
+    });
+    var maxL=Math.max.apply(null,rows.map(function(r){return r.left}));
+    var maxR=Math.max.apply(null,rows.map(function(r){return r.right}));
+    var S=maxL+maxR;
+    rows.sort(function(a,b){return b.mean-a.mean});
+    screensEl.style.setProperty('--axis',(maxL/S*100)+'%');
+    screensEl.innerHTML=rows.map(function(r,i){
+      var off=(maxL-r.left)/S*100, w=10000/S;
+      var segs=r.p.map(function(v,k){
+        return '<button type="button" class="seg s'+(k+1)+'" style="flex:0 0 '+v+'%" data-r="'+r.name+'" data-k="'+k+'" data-v="'+v+'" aria-label="'+r.name+', '+NAMES[k]+': '+v+'% responden">'+(v>=9?v+'%':'')+'</button>';
+      }).join('');
+      return '<div class="row"><div class="rlabel">'+r.name+'</div><div class="track"><div class="bar" style="left:'+off+'%;width:'+w+'%;--ox:'+r.left+'%;--d:'+(i*80)+'ms">'+segs+'</div></div></div>';
+    }).join('');
+    function say(e){
+      var b=e.target.closest('.seg'); if(!b) return;
+      var k=+b.dataset.k;
+      readout.textContent=b.dataset.r+': '+b.dataset.v+'% responden memilih skor '+(k+1)+' ('+NAMES[k].toLowerCase()+').';
+    }
+    ['mouseover','focusin','click'].forEach(function(t){screensEl.addEventListener(t,say)});
+  })();
+
+  /* ---------- 2. Tren bulanan ---------- */
+  var TREND=[["1.0",3.8],["1.4",4],["1.5",4],["2.0",4.5],["3.0",3.9],["3.32.1",4.3]];
+  var trendHost=document.getElementById('trend'), lastW=0, trendIn=false;
+  function drawTrend(){
+    var W=Math.max(280,Math.floor(trendHost.clientWidth)); if(W===lastW) return; lastW=W;
+    var H=W<520?230:280, m={l:34,r:18,t:36,b:30};
+    var iw=W-m.l-m.r, ih=H-m.t-m.b, y0=3.0, y1=4.5, pad=12;
+    var X=function(i){return m.l+pad+(iw-2*pad)*i/(TREND.length-1)};
+    var Y=function(v){return m.t+ih*(1-(v-y0)/(y1-y0))};
+    var g='';
+    [3.0,3.5,4.0,4.5].forEach(function(v){
+      var y=Y(v);
+      g+='<line class="grid" x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+y+'" y2="'+y+'"/><text class="tx" x="'+(m.l-8)+'" y="'+(y+4)+'" text-anchor="end">'+fmt(v,1)+'</text>';
+    });
+    var jx=X(3);
+    g+='<line class="mark" x1="'+jx+'" x2="'+jx+'" y1="'+(m.t-16)+'" y2="'+(m.t+ih)+'"/><text class="marktx" x="'+(jx+7)+'" y="'+(m.t-8)+'">Web-Based</text>';
+    var d=TREND.map(function(t,i){return (i?'L':'M')+X(i)+' '+Y(t[1])}).join(' ');
+    g+='<path class="tline" pathLength="1" d="'+d+'"/>';
+    TREND.forEach(function(t,i){
+      var last=i===TREND.length-1;
+      g+='<circle class="tdot'+(last?' last':'')+'" style="--i:'+i+'" cx="'+X(i)+'" cy="'+Y(t[1])+'" r="'+(last?6:5)+'"/>';
+      g+='<text class="tv'+(last?' last':'')+'" style="--i:'+i+'" x="'+X(i)+'" y="'+(Y(t[1])-14)+'" text-anchor="middle">'+fmt(t[1],1)+'</text>';
+      g+='<text class="tx" x="'+X(i)+'" y="'+(H-8)+'" text-anchor="middle">'+t[0]+'</text>';
+    });
+    var label='Grafik garis kepuasan bulanan: '+TREND.map(function(t){return t[0]+' '+fmt(t[1],1)}).join('; ');
+    trendHost.innerHTML='<svg class="'+(trendIn?'':'pre')+'" viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" role="img" aria-label="'+label+'">'+g+'</svg>';
+  }
+  drawTrend();
+  if(window.ResizeObserver){new ResizeObserver(drawTrend).observe(trendHost)}
+  else{window.addEventListener('resize',drawTrend)}
+  function playTrend(){
+    trendIn=true;
+    var svg=trendHost.querySelector('svg'); if(!svg) return;
+    void svg.getBoundingClientRect();
+    requestAnimationFrame(function(){svg.classList.add('play')});
+  }
+
+  /* ---------- 3. Aspek: versi 2.0 vs 3.0 ---------- */
+  var ASPECTS=[
+    ["Kompatibilitas Hardware",4.0,4.5],
+    ["Exstension",3.8,4.2],
+    ["Audio Editor",3.9,4.1],
+    ["Accesbility",3.7,3.9],
+    ["Graphic Effect",3.8,3.2],
+    ["Workspace Space",4.2,3.3],
+    ["Block Customization",3.7,4.2]
+  ];
+  (function(){
+    var html=ASPECTS.map(function(a){
+      var n=a[0],b4=a[1],b9=a[2],diff=b9-b4,down=diff<0;
+      var sign=down?'\u2212':'+';
+      return '<div class="arow" data-a="'+b4+'" data-b="'+b9+'"><div class="alabel">'+n+'</div>'+
+        '<div class="atrack" role="img" aria-label="'+n+': versi 2.0 skor '+fmt(b4,1)+', versi 3.0 skor '+fmt(b9,1)+', '+(down?'turun ':'naik ')+fmt(Math.abs(diff),1)+'">'+
+        '<span class="aline'+(down?' low':'')+'" style="left:'+pos(b4)+'%;width:0"></span>'+
+        '<span class="adot before" style="left:'+pos(b4)+'%" title="2.0: '+fmt(b4,1)+'"></span>'+
+        '<span class="adot after'+(down?' low':'')+'" style="left:'+pos(b4)+'%" title="3.0: '+fmt(b9,1)+'"></span></div>'+
+        '<div class="aval">'+fmt(b9,1)+'</div><div class="adelta'+(down?' neg':'')+'">'+sign+fmt(Math.abs(diff),1)+'</div></div>';
+    }).join('');
+    var ticks=[2.5,3,3.5,4,4.5].map(function(v){return '<span style="left:'+pos(v)+'%">'+fmt(v,1)+'</span>'}).join('');
+    html+='<div class="arow axis"><div></div><div class="atrack ticks" aria-hidden="true">'+ticks+'</div><div></div><div></div></div>';
+    document.getElementById('aspects').innerHTML=html;
+  })();
+  function playAspects(){
+    var rows=document.querySelectorAll('#aspects .arow[data-a]');
+    requestAnimationFrame(function(){requestAnimationFrame(function(){
+      Array.prototype.forEach.call(rows,function(r,i){
+        var a=+r.dataset.a, b=+r.dataset.b;
+        r.style.setProperty('--d',(i*90)+'ms');
+        var line=r.querySelector('.aline');
+        /* Garis dari titik 2.0 ke titik 3.0; jika turun, sisi kiri ikut bergeser mundur */
+        line.style.left=pos(Math.min(a,b))+'%';
+        line.style.width=Math.abs(pos(b)-pos(a))+'%';
+        r.querySelector('.adot.after').style.left=pos(b)+'%';
+      });
+    })});
+  }
+
+  /* ---------- 4. Kelompok pengguna ---------- */
+  var SEG={
+    usia:{note:"Skor turun seiring bertambahnya usia. Kelompok 20 tahun ke atas paling rendah di 3,4.",
+      rows:[["7–9 tahun",3112,4.3],["10–12 tahun",4023,4.2],["13–15 tahun",2441,3.9],["16–20 tahun",1285,3.7],["20 tahun ke atas",683,3.4]]},
+    perangkat:{note:"Penggunaan di Mobile masih dalam tahap pengembangan sehingga tertinggal dari pengguna Tab dan Laptop.",
+      rows:[["Laptop",5020,4.1],["Tablet",3121,4.2],["Mobile",543,3.9]]},
+    lama:{note:"Pengguna baru memberi skor 0,6 lebih rendah dari pengguna yang sudah lebih dari enam bulan.",
+      rows:[["Kurang dari 1 bulan",2311,3.6],["1 sampai 6 bulan",4540,4.0],["Lebih dari 6 bulan",4977,4.2]]}
+  };
+  var tabs=document.getElementById('tabs'), segBody=document.getElementById('segbody'), segNote=document.getElementById('snote');
+  var tabBtns=Array.prototype.slice.call(tabs.querySelectorAll('[role=tab]')), segIn=false;
+  function applySegWidths(){
+    requestAnimationFrame(function(){requestAnimationFrame(function(){
+      Array.prototype.forEach.call(segBody.querySelectorAll('.sbar'),function(b){b.style.width=b.dataset.w+'%'});
+    })});
+  }
+  function renderSeg(key){
+    var d=SEG[key], mn=Math.min.apply(null,d.rows.map(function(r){return r[2]}));
+    tabBtns.forEach(function(b){var on=b.dataset.k===key; b.setAttribute('aria-selected',on?'true':'false'); b.tabIndex=on?0:-1});
+    var head='<div class="srow shead"><div></div><div class="strack"><span class="refcap">Rata-rata 4,0</span></div><div></div></div>';
+    segBody.innerHTML=head+d.rows.map(function(r){
+      return '<div class="srow"><div class="slabel">'+r[0]+'<small>'+num(r[1])+' respons</small></div><div class="strack"><div class="sbar'+(r[2]===mn?' low':'')+'" data-w="'+(r[2]/5*100)+'"></div></div><div class="sval">'+fmt(r[2],1)+'</div></div>';
+    }).join('');
+    segNote.textContent=d.note;
+    if(segIn) applySegWidths();
+  }
+  tabBtns.forEach(function(b,i){
+    b.addEventListener('click',function(){renderSeg(b.dataset.k)});
+    b.addEventListener('keydown',function(e){
+      var n=null;
+      if(e.key==='ArrowRight') n=tabBtns[(i+1)%tabBtns.length];
+      if(e.key==='ArrowLeft') n=tabBtns[(i+tabBtns.length-1)%tabBtns.length];
+      if(n){e.preventDefault(); n.focus(); renderSeg(n.dataset.k)}
+    });
+  });
+  renderSeg('usia');
+  function playSeg(){segIn=true; applySegWidths()}
+
+  /* ---------- 5. Tema komentar ---------- */
+  var LIKE=[["Navigasi & Kontrol mudah",334],["Aksesbilitas & Responsibilitas bagus",278],["Mudah digunakan",102]];
+  var DISLIKE=[["Teks & Ukuran Visual terlalu keci",139],["UI yang membingungkan",105],["Workspace aneh di versi 3.0",60]];
+  function themes(id,list){
+    document.getElementById(id).innerHTML=list.map(function(t,i){
+      return '<li><div class="thead"><span>'+t[0]+'</span><span class="tn">'+num(t[1])+'</span></div><div class="tbar"><i data-w="'+(t[1]/334*100)+'" style="--d:'+(i*110)+'ms"></i></div></li>';
+    }).join('');
+  }
+  themes('like',LIKE); themes('dislike',DISLIKE);
+  (function(){
+    var all=LIKE.concat(DISLIKE), total=all.reduce(function(a,t){return a+t[1]},0);
+    var a0=-Math.PI/2, r=96, paths='', leg='', desc=[];
+    all.forEach(function(t,i){
+      var share=t[1]/total, a1=a0+share*2*Math.PI;
+      var x0=100+r*Math.cos(a0), y0=100+r*Math.sin(a0), x1=100+r*Math.cos(a1), y1=100+r*Math.sin(a1);
+      var pct=fmt(share*100,1)+'%', kind=i<LIKE.length?'disukai':'dikeluhkan';
+      paths+='<path class="pslice" style="--i:'+i+';fill:var(--p'+(i+1)+')" d="M100 100 L'+x0.toFixed(2)+' '+y0.toFixed(2)+' A'+r+' '+r+' 0 '+(share>.5?1:0)+' 1 '+x1.toFixed(2)+' '+y1.toFixed(2)+' Z"><title>'+t[0]+': '+num(t[1])+' sebutan ('+pct+')</title></path>';
+      leg+='<li><span class="sw" style="background:var(--p'+(i+1)+')"></span><span>'+t[0]+'</span><span class="pct">'+pct+'</span></li>';
+      desc.push(t[0]+' '+pct);
+      a0=a1;
+    });
+    var pie=document.getElementById('pie');
+    pie.innerHTML=paths;
+    pie.setAttribute('aria-label','Diagram lingkaran porsi tema komentar dari '+num(total)+' sebutan: '+desc.join('; '));
+    document.getElementById('plegend').innerHTML=leg;
+  })();
+  function playThemes(){
+    requestAnimationFrame(function(){requestAnimationFrame(function(){
+      Array.prototype.forEach.call(document.querySelectorAll('.tbar i'),function(b){b.style.width=b.dataset.w+'%'});
+    })});
+  }
+
+  /* ---------- Navigasi: Sebelumnya dan Berikutnya ---------- */
+  var layers=Array.prototype.slice.call(document.querySelectorAll('.layer'));
+  var ENTER={
+    l2:function(){screensEl.classList.add('go')},
+    l3:playTrend, l4:playAspects, l5:playSeg, l6:playThemes
+  };
+  var prevB=document.getElementById('prev'), nextB=document.getElementById('next');
+  var dotsEl=document.getElementById('dots'), stext=document.getElementById('stext');
+  var cur=-1;
+
+  dotsEl.innerHTML=layers.map(function(l,i){
+    return '<button type="button" data-i="'+i+'" aria-label="Ke layar '+(i+1)+': '+l.dataset.name+'" title="'+l.dataset.name+'"></button>';
+  }).join('');
+
+  function enter(l){
+    if(l.classList.contains('in')) return;
+    l.classList.add('in');
+    var f=ENTER[l.id]; if(f) f();
+  }
+  function go(n){
+    n=Math.max(0,Math.min(layers.length-1,n));
+    if(n===cur) return;
+    layers.forEach(function(l,i){
+      l.dataset.pos=i<n?'before':(i>n?'after':'active');
+      l.setAttribute('aria-hidden',i===n?'false':'true');
+    });
+    layers[n].scrollTop=0;
+    cur=n;
+    enter(layers[n]);
+    prevB.disabled=(cur===0);
+    nextB.disabled=(cur===layers.length-1);
+    if(prevB.disabled && document.activeElement===prevB) nextB.focus();
+    if(nextB.disabled && document.activeElement===nextB) prevB.focus();
+    stext.textContent=(cur+1)+' dari '+layers.length+': '+layers[cur].dataset.name;
+    Array.prototype.forEach.call(dotsEl.querySelectorAll('button'),function(b,i){
+      if(i===cur) b.setAttribute('aria-current','true'); else b.removeAttribute('aria-current');
+    });
+  }
+  prevB.addEventListener('click',function(){go(cur-1)});
+  nextB.addEventListener('click',function(){go(cur+1)});
+  dotsEl.addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(b) go(+b.dataset.i);
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.altKey||e.ctrlKey||e.metaKey||e.shiftKey) return;
+    if(e.target.closest && e.target.closest('[role=tablist]')) return;
+    if(e.key==='ArrowRight'){go(cur+1)}
+    else if(e.key==='ArrowLeft'){go(cur-1)}
+  });
+  var tx=0, ty=0;
+  document.addEventListener('touchstart',function(e){var t=e.changedTouches[0]; tx=t.clientX; ty=t.clientY},{passive:true});
+  document.addEventListener('touchend',function(e){
+    if(e.target.closest && e.target.closest('.tabs')) return;
+    var t=e.changedTouches[0], dx=t.clientX-tx, dy=t.clientY-ty;
+    if(Math.abs(dx)>70 && Math.abs(dy)<45) go(cur+(dx<0?1:-1));
+  },{passive:true});
+
+  void document.body.offsetHeight;
+  requestAnimationFrame(function(){go(0)});
+})();
+</script>
+</body>
+</html>
